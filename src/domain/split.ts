@@ -18,7 +18,7 @@ export function allocateLargestRemainder(total: bigint, weights: bigint[]): bigi
   const rem = weights.map((w, i) => ({ i, r: (total * w) % sum }));
   let left = total - base.reduce((a, b) => a + b, 0n);
   rem.sort((a, b) => (a.r === b.r ? a.i - b.i : a.r > b.r ? -1 : 1));
-  for (let k = 0; left > 0n; k++, left--) base[rem[k].i] += 1n;
+  for (let k = 0; left > 0n; k++, left--) base[rem[k]!.i]! += 1n;
   return base;
 }
 
@@ -41,8 +41,8 @@ export function splitByMemberCount(total: bigint, units: FamilyUnit[]): UnitAllo
   const counts = units.map((u) => u.members.filter((m) => m.included).length);
   const amounts = allocateLargestRemainder(total, counts.map(BigInt));
   return units.map((u, i) => ({
-    familyUnitId: u.id, amountMinor: amounts[i], countSnapshot: counts[i],
-    weightSnapshotMilli: BigInt(counts[i] * 1000),
+    familyUnitId: u.id, amountMinor: amounts[i]!, countSnapshot: counts[i]!,
+    weightSnapshotMilli: BigInt(counts[i]! * 1000),
   }));
 }
 
@@ -52,9 +52,9 @@ export function splitByWeightedFamily(total: bigint, units: FamilyUnit[]): UnitA
     u.members.filter((m) => m.included).reduce((s, m) => { assertWeight(m.weightMilli); return s + BigInt(m.weightMilli); }, 0n));
   const amounts = allocateLargestRemainder(total, weights);
   return units.map((u, i) => ({
-    familyUnitId: u.id, amountMinor: amounts[i],
+    familyUnitId: u.id, amountMinor: amounts[i]!,
     countSnapshot: u.members.filter((m) => m.included).length,
-    weightSnapshotMilli: weights[i],
+    weightSnapshotMilli: weights[i]!,
   }));
 }
 
