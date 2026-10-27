@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { splitByWeightedFamily, splitByMemberCount, type FamilyUnit } from "@/domain/split";
 import { parseToMinor, formatMinor, CURRENCY_DIGITS } from "@/domain/money";
@@ -45,6 +45,9 @@ function Index() {
       <p className="text-sm font-semibold uppercase tracking-widest text-primary">Personal Finance App</p>
       <h1 className="mt-2 text-4xl leading-tight">Split the dinner bill fairly, to the last fils.</h1>
       <p className="mt-3 text-muted-foreground">Try the split engine: three families, a child counted as half.</p>
+      <Link to="/ledger" className="mt-5 inline-block rounded-xl bg-primary px-5 py-3 font-semibold text-primary-foreground">
+        Track my spending
+      </Link>
 
       <section className="mt-8 rounded-2xl bg-card p-5 shadow-sm">
         <label className="text-sm text-muted-foreground" htmlFor="amt">Total</label>
