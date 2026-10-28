@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_authenticated/review/$id")({
 });
 
 function toDecimal(minor: number | string, cur: string) {
-  return formatMinor(BigInt(minor), cur).split(" ")[0];
+  return formatMinor(BigInt(minor), cur).split(" ")[0] ?? "";
 }
 
 function Review() {
