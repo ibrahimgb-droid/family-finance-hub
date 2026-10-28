@@ -3,8 +3,8 @@
 - [x] B. Repository structure
 - [x] C. Migrations, constraints, indexes, RLS + test script
 - [x] D. Domain models & calculation engine + unit tests
-- [ ] E. Backend client & server functions (auth, invitations, extraction)
-- [ ] F. Navigation & screens (sign-in, ledger, review draft, groups)
+- [~] E. Backend client & server functions (auth, invitations, extraction)
+- [~] F. Navigation & screens (sign-in, ledger, review draft, groups)
 - [ ] G. Receipt capture / OCR adapter / extraction schema
 - [ ] H. Group, family, invitation, split, settlement UI
 - [ ] I. Analytics events, ad slots, premium checks
