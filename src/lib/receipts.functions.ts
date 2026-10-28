@@ -53,7 +53,7 @@ export const extractReceipt = createServerFn({ method: "POST" })
             { type: "text", text: "Extract the receipt fields." },
             isPdf
               ? { type: "file", data: b64, mediaType: "application/pdf", filename: "receipt.pdf" }
-              : { type: "image", image: b64, mediaType: rec.mime_type },
+              : { type: "file", data: b64, mediaType: rec.mime_type },
           ],
         }],
         output: Output.object({ schema }),
