@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as InviteRouteImport } from './routes/invite'
 import { Route as AuthenticatedGroupsRouteImport } from './routes/_authenticated/groups'
 import { Route as AuthenticatedLedgerRouteImport } from './routes/_authenticated/ledger'
+import { Route as AuthenticatedGroupsGroupIdRouteImport } from './routes/_authenticated/groups.$groupId'
 import { Route as AuthenticatedReviewIdRouteImport } from './routes/_authenticated/review.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -30,6 +32,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InviteRoute = InviteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedGroupsRoute = AuthenticatedGroupsRouteImport.update({
   id: '/groups',
   path: '/groups',
@@ -40,6 +47,12 @@ const AuthenticatedLedgerRoute = AuthenticatedLedgerRouteImport.update({
   path: '/ledger',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGroupsGroupIdRoute =
+  AuthenticatedGroupsGroupIdRouteImport.update({
+    id: '/$groupId',
+    path: '/$groupId',
+    getParentRoute: () => AuthenticatedGroupsRoute,
+  } as any)
 const AuthenticatedReviewIdRoute = AuthenticatedReviewIdRouteImport.update({
   id: '/review/$id',
   path: '/review/$id',
@@ -49,15 +62,19 @@ const AuthenticatedReviewIdRoute = AuthenticatedReviewIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/groups': typeof AuthenticatedGroupsRoute
+  '/invite': typeof InviteRoute
+  '/groups': typeof AuthenticatedGroupsRouteWithChildren
   '/ledger': typeof AuthenticatedLedgerRoute
+  '/groups/$groupId': typeof AuthenticatedGroupsGroupIdRoute
   '/review/$id': typeof AuthenticatedReviewIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/groups': typeof AuthenticatedGroupsRoute
+  '/invite': typeof InviteRoute
+  '/groups': typeof AuthenticatedGroupsRouteWithChildren
   '/ledger': typeof AuthenticatedLedgerRoute
+  '/groups/$groupId': typeof AuthenticatedGroupsGroupIdRoute
   '/review/$id': typeof AuthenticatedReviewIdRoute
 }
 export interface FileRoutesById {
@@ -65,22 +82,40 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
-  '/_authenticated/groups': typeof AuthenticatedGroupsRoute
+  '/invite': typeof InviteRoute
+  '/_authenticated/groups': typeof AuthenticatedGroupsRouteWithChildren
   '/_authenticated/ledger': typeof AuthenticatedLedgerRoute
+  '/_authenticated/groups/$groupId': typeof AuthenticatedGroupsGroupIdRoute
   '/_authenticated/review/$id': typeof AuthenticatedReviewIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/groups' | '/ledger' | '/review/$id'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/invite'
+    | '/groups'
+    | '/ledger'
+    | '/groups/$groupId'
+    | '/review/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/groups' | '/ledger' | '/review/$id'
+  to:
+    | '/'
+    | '/auth'
+    | '/invite'
+    | '/groups'
+    | '/ledger'
+    | '/groups/$groupId'
+    | '/review/$id'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/invite'
     | '/_authenticated/groups'
     | '/_authenticated/ledger'
+    | '/_authenticated/groups/$groupId'
     | '/_authenticated/review/$id'
   fileRoutesById: FileRoutesById
 }
@@ -88,6 +123,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  InviteRoute: typeof InviteRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -113,6 +149,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invite': {
+      id: '/invite'
+      path: '/invite'
+      fullPath: '/invite'
+      preLoaderRoute: typeof InviteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/groups': {
       id: '/_authenticated/groups'
       path: '/groups'
@@ -127,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLedgerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/groups/$groupId': {
+      id: '/_authenticated/groups/$groupId'
+      path: '/$groupId'
+      fullPath: '/groups/$groupId'
+      preLoaderRoute: typeof AuthenticatedGroupsGroupIdRouteImport
+      parentRoute: typeof AuthenticatedGroupsRoute
+    }
     '/_authenticated/review/$id': {
       id: '/_authenticated/review/$id'
       path: '/review/$id'
@@ -137,14 +187,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedGroupsRouteChildren {
+  AuthenticatedGroupsGroupIdRoute: typeof AuthenticatedGroupsGroupIdRoute
+}
+
+const AuthenticatedGroupsRouteChildren: AuthenticatedGroupsRouteChildren = {
+  AuthenticatedGroupsGroupIdRoute: AuthenticatedGroupsGroupIdRoute,
+}
+
+const AuthenticatedGroupsRouteWithChildren =
+  AuthenticatedGroupsRoute._addFileChildren(AuthenticatedGroupsRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedGroupsRoute: typeof AuthenticatedGroupsRoute
+  AuthenticatedGroupsRoute: typeof AuthenticatedGroupsRouteWithChildren
   AuthenticatedLedgerRoute: typeof AuthenticatedLedgerRoute
   AuthenticatedReviewIdRoute: typeof AuthenticatedReviewIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedGroupsRoute: AuthenticatedGroupsRoute,
+  AuthenticatedGroupsRoute: AuthenticatedGroupsRouteWithChildren,
   AuthenticatedLedgerRoute: AuthenticatedLedgerRoute,
   AuthenticatedReviewIdRoute: AuthenticatedReviewIdRoute,
 }
@@ -156,6 +217,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  InviteRoute: InviteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
