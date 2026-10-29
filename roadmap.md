@@ -6,6 +6,6 @@
 - [x] E. Backend client & server functions (auth, invitations, extraction)
 - [x] F. Navigation & screens (sign-in, ledger, review draft, groups)
 - [x] G. Receipt capture / OCR adapter / extraction schema
-- [ ] H. Group, family, invitation, split, settlement UI (in progress)
+- [ ] H. Group, family, invitation, split, settlement UI: screens and calculation tests added; blocked on Cloud readiness for atomic expense RPC, same-group guards, and authenticated end-to-end verification. Saving fails closed until applied.
 - [ ] I. Analytics events, ad slots, premium checks
 - [ ] J. CI/CD, environments, test plan, release checklist

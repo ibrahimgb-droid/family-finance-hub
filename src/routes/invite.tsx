@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/invite")({
-  validateSearch: (search: Record<string, unknown>) => ({ token: typeof search.token === "string" ? search.token : "" }),
+  validateSearch: (search: Record<string, unknown>) => ({ token: typeof search["token"] === "string" ? search["token"] : "" }),
   head: () => ({ meta: [{ title: "Group invitation — Personal Finance App" }, { name: "description", content: "Accept a private invitation to share family expenses." }, { property: "og:title", content: "Group invitation — Personal Finance App" }, { property: "og:description", content: "Join your family's private spending group." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: Invitation,
 });

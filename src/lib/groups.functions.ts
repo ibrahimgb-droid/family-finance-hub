@@ -3,7 +3,6 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { groupSplit } from "@/domain/group-split";
 import { parseToMinor } from "@/domain/money";
-import { ENGINE_VERSION } from "@/domain/split";
 
 const expenseInput = z.object({
   groupId: z.string().uuid(), payerId: z.string().uuid(), description: z.string().trim().min(1).max(120),
@@ -22,19 +21,10 @@ export const saveGroupExpense = createServerFn({ method: "POST" })
     if (new Set(data.includedIds).size !== data.includedIds.length || data.includedIds.some(id => !people.some(p => p.id === id))) throw new Error("Invalid participants");
     const total = parseToMinor(data.amount, data.currency);
     const allocations = groupSplit(total, data.currency, data.method, people.map(p => ({ id: p.id, familyId: p.family_unit_id, included: data.includedIds.includes(p.id), weightMilli: p.weight_milli })), data.inputs);
-    const snapshots = allocations.map(a => {
-      const p = people.find(p => p.id === a.memberId);
-      if (!p) throw new Error("Participant not found");
-      return { family_member_id: p.id, family_unit_id: p.family_unit_id, amount_minor: a.amountMinor.toString(),
-        input_value: data.inputs[p.id] || null, count_snapshot: 1, weight_snapshot_milli: p.weight_milli.toString() };
-    });
-    const { data: id, error: saveError } = await context.supabase.rpc("save_group_expense", {
-      _expense: { group_id: data.groupId, paid_by_member_id: data.payerId, description: data.description, occurred_on: data.date,
-        currency: data.currency, total_minor: total.toString(), method: data.method, engine_version: ENGINE_VERSION },
-      _allocations: snapshots,
-    });
-    if (saveError) throw new Error("The shared expense could not be saved. Please try again.");
-    return { id };
+    if (allocations.reduce((sum, a) => sum + a.amountMinor, 0n) !== total) throw new Error("Invalid split total");
+    // Fail closed until the atomic expense RPC and reference guards can be applied.
+    // Lovable Cloud was unavailable during module H implementation.
+    throw new Error("Shared expense saving is awaiting completion of the Cloud setup.");
   });
 
 export const createGroupInvitation = createServerFn({ method: "POST" })
