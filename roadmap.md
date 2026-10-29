@@ -6,6 +6,6 @@
 - [x] E. Backend client & server functions (auth, invitations, extraction)
 - [x] F. Navigation & screens (sign-in, ledger, review draft, groups)
 - [x] G. Receipt capture / OCR adapter / extraction schema
-- [ ] H. Group, family, invitation, split, settlement UI
+- [ ] H. Group, family, invitation, split, settlement UI (in progress)
 - [ ] I. Analytics events, ad slots, premium checks
 - [ ] J. CI/CD, environments, test plan, release checklist
