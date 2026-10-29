@@ -26,9 +26,16 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => { if (data.user) navigate({ to: "/ledger", replace: true }); });
+    function continueAfterSignIn() {
+      const token = sessionStorage.getItem("pending-group-invitation");
+      if (token) {
+        sessionStorage.removeItem("pending-group-invitation");
+        navigate({ to: "/invite", search: { token }, replace: true });
+      } else navigate({ to: "/ledger", replace: true });
+    }
+    supabase.auth.getUser().then(({ data }) => { if (data.user) continueAfterSignIn(); });
     const { data } = supabase.auth.onAuthStateChange((e, s) => {
-      if (e === "SIGNED_IN" && s) navigate({ to: "/ledger", replace: true });
+      if (e === "SIGNED_IN" && s) continueAfterSignIn();
     });
     return () => data.subscription.unsubscribe();
   }, [navigate]);
