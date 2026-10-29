@@ -18,3 +18,4 @@
 - Entitlements are server-written only. Why: premium can't be self-granted.
 - Extracted receipts always create `draft` transactions; only `confirmed` rows count in summaries.
 - Architecture details: docs/architecture.md. Task status: roadmap.md.
+- Shared expense previews and server validation use the pure group split adapter; confirmation writes expense and allocations atomically through a user-scoped RPC. Why: consistent rounding without partially posted expenses.
