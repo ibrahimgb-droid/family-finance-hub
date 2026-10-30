@@ -19,4 +19,5 @@
 - Extracted receipts always create `draft` transactions; only `confirmed` rows count in summaries.
 - Architecture details: docs/architecture.md. Task status: roadmap.md.
 - Receipt line items are an atomic JSON snapshot on the parent transaction, with money stored as integer strings; items never post separately. Why: editable drafts without double-counting or partial item writes.
+- Price insights use a pure integer-money adapter and exact normalized item descriptions within one currency, comparing distinct confirmed receipts. Why: avoid fuzzy product matches, currency mixing, or quantity-driven false changes.
 - Shared expense previews and server validation use the pure group split adapter; saving must remain fail-closed until an atomic user-scoped expense RPC and same-group reference guards are applied. Why: consistent rounding without partially posted or cross-group expenses.
