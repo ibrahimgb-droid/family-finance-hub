@@ -1,5 +1,5 @@
 // Pure helpers for receipt extraction. No framework imports.
-export const EXTRACTION_SCHEMA_VERSION = "receipt.v1";
+export const EXTRACTION_SCHEMA_VERSION = "receipt.v2";
 
 /** Mask card-number-like runs (13–19 digits, spaces/dashes allowed), keeping the last 4. */
 export function scrubPan(text: string): string {

@@ -554,6 +554,7 @@ export type Database = {
           currency: string
           document_ref: string | null
           id: string
+          line_items: Json
           merchant: string | null
           note: string | null
           occurred_on: string
@@ -572,6 +573,7 @@ export type Database = {
           currency: string
           document_ref?: string | null
           id?: string
+          line_items?: Json
           merchant?: string | null
           note?: string | null
           occurred_on: string
@@ -590,6 +592,7 @@ export type Database = {
           currency?: string
           document_ref?: string | null
           id?: string
+          line_items?: Json
           merchant?: string | null
           note?: string | null
           occurred_on?: string
