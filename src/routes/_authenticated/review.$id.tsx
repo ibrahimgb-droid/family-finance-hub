@@ -3,6 +3,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseToMinor, formatMinor, CURRENCY_DIGITS } from "@/domain/money";
+import { useServerFn } from "@tanstack/react-start";
+import { saveReceiptReview } from "@/lib/receipt-review.functions";
+import { ReceiptLineItems, type EditableReceiptItem } from "@/components/receipt-line-items";
+import { signedAmountToMinor, type ReceiptItem } from "@/domain/receipt-items";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/review/$id")({
   head: () => ({
@@ -26,10 +31,11 @@ function Review() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const saveReview = useServerFn(saveReceiptReview);
   const q = useQuery({
     queryKey: ["tx", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("transactions").select("*, receipts(storage_path)").eq("id", id).single();
+      const { data, error } = await supabase.from("transactions").select("*, receipts(storage_path, mime_type)").eq("id", id).single();
       if (error) throw error;
       let url: string | null = null;
       const path = (data.receipts as { storage_path: string } | null)?.storage_path;
@@ -39,30 +45,38 @@ function Review() {
   });
   const [f, setF] = useState({ merchant: "", date: "", currency: "KWD", total: "", tax: "" });
   const [err, setErr] = useState<string | null>(null);
+  const [items, setItems] = useState<EditableReceiptItem[]>([]);
+  const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (!q.data) return;
     const t = q.data.tx;
     setF({ merchant: t.merchant ?? "", date: t.occurred_on, currency: t.currency, total: toDecimal(t.total_minor, t.currency), tax: toDecimal(t.tax_minor, t.currency) });
+    const rows = (Array.isArray(t.line_items) ? t.line_items : []) as unknown as ReceiptItem[];
+    setItems(rows.map((item) => ({ ...item, unitPrice: item.unit_price_minor === null ? "" : toDecimal(item.unit_price_minor, t.currency), amount: item.total_minor === null ? "" : toDecimal(item.total_minor, t.currency) })));
   }, [q.data]);
 
   async function save(status: "confirmed" | "void") {
     setErr(null);
+    setSaving(true);
     try {
-      const patch = status === "void" ? { status, confirmed_at: null } : {
-        status, confirmed_at: new Date().toISOString(), merchant: f.merchant.trim() || null, occurred_on: f.date, currency: f.currency,
-        total_minor: parseToMinor(f.total, f.currency).toString() as unknown as number,
-        tax_minor: parseToMinor(f.tax || "0", f.currency).toString() as unknown as number,
-      };
-      const { error } = await supabase.from("transactions").update(patch).eq("id", id);
-      if (error) throw error;
+      const reviewed = items.map(({ unitPrice, amount, ...item }) => {
+        const unit = signedAmountToMinor(unitPrice, f.currency);
+        const total = signedAmountToMinor(amount, f.currency);
+        if ((unitPrice.trim() && unit === null) || (amount.trim() && total === null)) throw new Error("Check the line-item amounts and currency precision.");
+        return { ...item, unit_price_minor: unit, total_minor: total };
+      });
+      await saveReview({ data: { id, status, ...f, items: reviewed } });
       qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["tx", id] });
       navigate({ to: "/ledger" });
     } catch (e) { setErr((e as Error).message); }
+    finally { setSaving(false); }
   }
 
   if (q.isLoading) return <main className="p-6 text-muted-foreground">Loading…</main>;
   if (q.error) return <main className="p-6 text-destructive">Couldn't load this receipt.</main>;
-  const done = q.data!.tx.status !== "draft";
+  if (!q.data) return <main className="p-6 text-muted-foreground">Receipt unavailable.</main>;
+  const done = q.data.tx.status !== "draft";
   const field = "w-full rounded-xl border border-input bg-background px-4 py-3";
 
   return (
@@ -70,7 +84,7 @@ function Review() {
       <Link to="/ledger" className="text-sm text-muted-foreground underline">← Back</Link>
       <h1 className="mt-3 text-3xl">Check your receipt</h1>
       <p className="mt-1 text-sm text-muted-foreground">Nothing is counted until you confirm.</p>
-      {q.data!.url && <img src={q.data!.url} alt="Receipt" className="mt-4 max-h-80 w-full rounded-2xl object-contain bg-muted" />}
+      {q.data.url && (q.data.tx.receipts?.mime_type === "application/pdf" ? <a href={q.data.url} target="_blank" rel="noreferrer" className="mt-4 block text-primary underline">Open receipt PDF</a> : <img src={q.data.url} alt="Receipt" className="mt-4 max-h-80 w-full rounded-2xl object-contain bg-muted" />)}
       <div className="mt-5 space-y-3 rounded-2xl bg-card p-5 shadow-sm">
         <input className={field} placeholder="Merchant" value={f.merchant} onChange={(e) => setF({ ...f, merchant: e.target.value })} disabled={done} />
         <input className={field} type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} disabled={done} />
@@ -83,10 +97,11 @@ function Review() {
         <label className="block text-sm text-muted-foreground">Tax / VAT
           <input className={field} inputMode="decimal" value={f.tax} onChange={(e) => setF({ ...f, tax: e.target.value })} disabled={done} />
         </label>
-        {done ? <p className="text-sm text-muted-foreground">This receipt is already {q.data!.tx.status}.</p> : (
+        <ReceiptLineItems items={items} currency={f.currency} total={f.total} disabled={done || saving} onChange={setItems} />
+        {done ? <p className="text-sm text-muted-foreground">This receipt is already {q.data.tx.status}.</p> : (
           <div className="flex gap-2 pt-1">
-            <button onClick={() => save("void")} className="flex-1 rounded-xl border border-input py-3 font-semibold">Discard</button>
-            <button onClick={() => save("confirmed")} className="flex-1 rounded-xl bg-primary py-3 font-semibold text-primary-foreground">Confirm</button>
+            <Button variant="outline" disabled={saving} onClick={() => save("void")} className="flex-1">Discard</Button>
+            <Button disabled={saving} onClick={() => save("confirmed")} className="flex-1">{saving ? "Saving…" : "Confirm"}</Button>
           </div>
         )}
         {err && <p className="text-sm text-destructive">{err}</p>}
