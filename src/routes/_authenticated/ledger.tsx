@@ -147,7 +147,7 @@ function Ledger() {
         {txs.data?.length === 0 && <li className="py-4 text-sm text-muted-foreground">No expenses yet.</li>}
         {txs.data?.map((t) => (
           <li key={t.id}>
-            <Link to="/review/$id" params={{ id: t.id }} disabled={t.status !== "draft"} className="flex items-center justify-between py-3">
+            <Link to="/review/$id" params={{ id: t.id }} className="flex items-center justify-between py-3">
               <div>
                 <p className="font-semibold">{t.merchant ?? "Expense"}</p>
                 <p className="text-xs text-muted-foreground">{t.occurred_on}{t.status === "draft" ? " · draft — tap to review" : ""}</p>
