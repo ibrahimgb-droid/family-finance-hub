@@ -1,4 +1,5 @@
 # Roadmap
+- [ ] Extract and categorize receipt line items; editable draft review and verification.
 - [x] A. Architecture & assumptions (docs/architecture.md)
 - [x] B. Repository structure
 - [x] C. Migrations, constraints, indexes, RLS + test script
