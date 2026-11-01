@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Add item price-change Insights page with confirmed-receipt comparisons and tests.
+- [x] Add item price-change Insights page: confirmed-receipt comparisons, search, direction/currency filters and receipt history; 14 tests passed and signed-in confirmation → insight → receipt history verified. Temporary test purchases removed.
 - [x] Extract and categorize receipt line items; editable draft review, exact amounts, signed-in scan → category edit → confirm → read-back verified with a labeled test receipt.
 - [x] A. Architecture & assumptions (docs/architecture.md)
 - [x] B. Repository structure

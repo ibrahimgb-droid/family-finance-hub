@@ -67,6 +67,7 @@ function Review() {
       });
       await saveReview({ data: { id, status, ...f, items: reviewed } });
       qc.invalidateQueries({ queryKey: ["transactions"] });
+      qc.invalidateQueries({ queryKey: ["price-insights"] });
       qc.invalidateQueries({ queryKey: ["tx", id] });
       navigate({ to: "/ledger" });
     } catch (e) { setErr((e as Error).message); }

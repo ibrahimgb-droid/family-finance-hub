@@ -6,7 +6,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseToMinor, formatMinor, CURRENCY_DIGITS } from "@/domain/money";
 import { Button } from "@/components/ui/button";
-import { Users } from "lucide-react";
+import { Users, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/ledger")({
   head: () => ({
@@ -104,6 +104,7 @@ function Ledger() {
       </div>
       <p className="mt-1 truncate text-xs text-muted-foreground">{user.email}</p>
       <Button asChild variant="outline" className="mt-4"><Link to="/groups"><Users /> Groups & shared expenses</Link></Button>
+      <Button asChild variant="outline" className="mt-2"><Link to="/insights"><TrendingUp /> Price insights</Link></Button>
 
       <section className="mt-5 rounded-2xl bg-card p-5 shadow-sm">
         <p className="text-sm text-muted-foreground">Confirmed total</p>

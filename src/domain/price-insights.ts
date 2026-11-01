@@ -22,10 +22,10 @@ function positiveMinor(value: unknown): bigint | null {
 
 // Use a printed unit price, or an explicitly single-unit line total. Do not guess quantities.
 function comparablePrice(item: Record<string, unknown>): bigint | null {
-  if (typeof item.total_minor === "string" && /^-\d+$/.test(item.total_minor)) return null;
-  const unit = positiveMinor(item.unit_price_minor);
+  if (typeof item['total_minor'] === "string" && /^-\d+$/.test(item['total_minor'])) return null;
+  const unit = positiveMinor(item['unit_price_minor']);
   if (unit !== null) return unit;
-  if (typeof item.quantity === "string" && /^0*1(?:\.0+)?$/.test(item.quantity.trim())) return positiveMinor(item.total_minor);
+  if (typeof item['quantity'] === "string" && /^0*1(?:\.0+)?$/.test(item['quantity'].trim())) return positiveMinor(item['total_minor']);
   return null;
 }
 
@@ -37,14 +37,14 @@ export function buildPriceInsights(receipts: PriceReceipt[]): { changes: PriceIn
     for (const raw of receipt.line_items) {
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
       const item = raw as Record<string, unknown>;
-      if (typeof item.description !== "string") continue;
-      const name = normalizeItemName(item.description);
+      if (typeof item['description'] !== "string") continue;
+      const name = normalizeItemName(item['description']);
       if (!name || ["unreadable item", "unknown", "item", "discount"].includes(name)) continue;
       const price = comparablePrice(item);
       if (price === null) continue;
       const existing = withinReceipt.get(name);
       if (existing) { existing.conflict ||= existing.price !== price; continue; }
-      withinReceipt.set(name, { description: item.description, category: typeof item.category === "string" ? item.category : "Other", price, conflict: false });
+      withinReceipt.set(name, { description: item['description'], category: typeof item['category'] === "string" ? item['category'] : "Other", price, conflict: false });
     }
     for (const [name, item] of withinReceipt) {
       if (item.conflict) continue;

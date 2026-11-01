@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as InviteRouteImport } from './routes/invite'
 import { Route as AuthenticatedGroupsRouteImport } from './routes/_authenticated/groups'
+import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
 import { Route as AuthenticatedLedgerRouteImport } from './routes/_authenticated/ledger'
 import { Route as AuthenticatedGroupsGroupIdRouteImport } from './routes/_authenticated/groups.$groupId'
 import { Route as AuthenticatedReviewIdRouteImport } from './routes/_authenticated/review.$id'
@@ -42,6 +43,11 @@ const AuthenticatedGroupsRoute = AuthenticatedGroupsRouteImport.update({
   path: '/groups',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedInsightsRoute = AuthenticatedInsightsRouteImport.update({
+  id: '/insights',
+  path: '/insights',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedLedgerRoute = AuthenticatedLedgerRouteImport.update({
   id: '/ledger',
   path: '/ledger',
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/invite': typeof InviteRoute
   '/groups': typeof AuthenticatedGroupsRouteWithChildren
+  '/insights': typeof AuthenticatedInsightsRoute
   '/ledger': typeof AuthenticatedLedgerRoute
   '/groups/$groupId': typeof AuthenticatedGroupsGroupIdRoute
   '/review/$id': typeof AuthenticatedReviewIdRoute
@@ -73,6 +80,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/invite': typeof InviteRoute
   '/groups': typeof AuthenticatedGroupsRouteWithChildren
+  '/insights': typeof AuthenticatedInsightsRoute
   '/ledger': typeof AuthenticatedLedgerRoute
   '/groups/$groupId': typeof AuthenticatedGroupsGroupIdRoute
   '/review/$id': typeof AuthenticatedReviewIdRoute
@@ -84,6 +92,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/invite': typeof InviteRoute
   '/_authenticated/groups': typeof AuthenticatedGroupsRouteWithChildren
+  '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/ledger': typeof AuthenticatedLedgerRoute
   '/_authenticated/groups/$groupId': typeof AuthenticatedGroupsGroupIdRoute
   '/_authenticated/review/$id': typeof AuthenticatedReviewIdRoute
@@ -95,6 +104,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/invite'
     | '/groups'
+    | '/insights'
     | '/ledger'
     | '/groups/$groupId'
     | '/review/$id'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/invite'
     | '/groups'
+    | '/insights'
     | '/ledger'
     | '/groups/$groupId'
     | '/review/$id'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/invite'
     | '/_authenticated/groups'
+    | '/_authenticated/insights'
     | '/_authenticated/ledger'
     | '/_authenticated/groups/$groupId'
     | '/_authenticated/review/$id'
@@ -163,6 +175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGroupsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/insights': {
+      id: '/_authenticated/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof AuthenticatedInsightsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/ledger': {
       id: '/_authenticated/ledger'
       path: '/ledger'
@@ -200,12 +219,14 @@ const AuthenticatedGroupsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedGroupsRoute: typeof AuthenticatedGroupsRouteWithChildren
+  AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
   AuthenticatedLedgerRoute: typeof AuthenticatedLedgerRoute
   AuthenticatedReviewIdRoute: typeof AuthenticatedReviewIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGroupsRoute: AuthenticatedGroupsRouteWithChildren,
+  AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
   AuthenticatedLedgerRoute: AuthenticatedLedgerRoute,
   AuthenticatedReviewIdRoute: AuthenticatedReviewIdRoute,
 }
