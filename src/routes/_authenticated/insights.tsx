@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated/insights")({
   ] }),
   loader: ({ context }) => context.queryClient.ensureQueryData(insightsQuery(context.user.id)),
   pendingComponent: () => <main className="mx-auto max-w-2xl p-5 py-8 text-muted-foreground">Loading insights…</main>,
-  errorComponent: ({ error, reset }) => <main className="mx-auto max-w-2xl p-5 py-8"><h1 className="text-3xl">Insights unavailable</h1><p className="my-4 text-destructive">{error.message}</p><Button onClick={reset}>Try again</Button><Button asChild variant="ghost"><Link to="/ledger">My spending</Link></Button></main>,
+  errorComponent: ({ error, reset }) => <main className="mx-auto max-w-2xl p-5 py-8"><h1 className="text-3xl">Insights unavailable</h1><p className="my-4 text-destructive">{error instanceof Error ? error.message : "Could not load price insights."}</p><Button onClick={reset}>Try again</Button><Button asChild variant="ghost"><Link to="/ledger">My spending</Link></Button></main>,
   component: Insights,
 });
 
