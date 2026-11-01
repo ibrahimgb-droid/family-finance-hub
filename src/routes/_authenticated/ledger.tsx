@@ -2,11 +2,14 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { extractReceipt } from "@/lib/receipts.functions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseToMinor, formatMinor, CURRENCY_DIGITS } from "@/domain/money";
 import { Button } from "@/components/ui/button";
-import { Users, TrendingUp } from "lucide-react";
+import { ArrowUpRight, ArrowDownLeft, Plus, ScanLine, Wallet, Sparkles, LogOut, Check, Users, TrendingUp } from "lucide-react";
+import { ReceiptStreak } from "@/components/receipt-streak";
+import { FinanceSkeleton } from "@/components/finance-skeleton";
+import receiptArt from "@/assets/receipt-sculpture.jpg";
 
 export const Route = createFileRoute("/_authenticated/ledger")({
   head: () => ({
@@ -22,12 +25,16 @@ export const Route = createFileRoute("/_authenticated/ledger")({
   component: Ledger,
 });
 
-type Tx = { id: string; merchant: string | null; occurred_on: string; currency: string; total_minor: number | string; status: string };
+type Tx = { id: string; merchant: string | null; occurred_on: string; currency: string; total_minor: number | string; status: string; source: string };
 
 function Ledger() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { user } = Route.useRouteContext();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [activityFilter, setActivityFilter] = useState("all");
+  const [showAll, setShowAll] = useState(false);
+  const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [merchant, setMerchant] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("KWD");
@@ -38,7 +45,7 @@ function Ledger() {
     queryKey: ["transactions"],
     queryFn: async () => {
       const { data, error } = await supabase.from("transactions")
-        .select("id, merchant, occurred_on, currency, total_minor, status")
+        .select("id, merchant, occurred_on, currency, total_minor, status, source")
         .neq("status", "void").order("occurred_on", { ascending: false }).limit(100);
       if (error) throw error;
       return data as Tx[];
@@ -96,68 +103,68 @@ function Ledger() {
     navigate({ to: "/auth", replace: true });
   }
 
+  const confirmed = (txs.data ?? []).filter((tx) => tx.status === "confirmed");
+  const activity = (txs.data ?? []).filter((tx) => activityFilter === "all" || tx.status === activityFilter);
+  const visibleActivity = showAll ? activity : activity.slice(0, 5);
+  const inputClass = "w-full rounded-xl border border-input bg-background/60 px-4 py-3 text-sm";
+
   return (
-    <main className="mx-auto min-h-screen max-w-md px-5 py-8">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold uppercase tracking-widest text-primary">My spending</p>
-        <button onClick={signOut} className="text-sm text-muted-foreground underline">Sign out</button>
+    <main className="mx-auto min-h-screen max-w-6xl px-5 py-7 md:px-8 md:py-10">
+      <header className="flex items-center justify-between gap-4 border-b border-border pb-5">
+        <Link to="/ledger" className="flex items-center gap-2.5"><span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Wallet className="size-5" /></span><span className="text-sm font-extrabold">PERSONAL FINANCE<span className="text-primary"> /</span></span></Link>
+        <div className="flex items-center gap-3"><span className="hidden text-xs text-muted-foreground md:block">{user.email}</span><Button variant="ghost" size="icon" onClick={signOut} aria-label="Sign out" title="Sign out"><LogOut /></Button></div>
+      </header>
+      <div className="flex items-end justify-between gap-4 py-7 md:py-9">
+        <div><p className="utility-label mb-3 text-muted-foreground">YOUR MONEY. YOUR RULES.</p><h1 className="text-4xl leading-none md:text-5xl">Money moves<span className="text-secondary">.</span></h1><p className="mt-3 text-sm text-muted-foreground">Less guesswork. More main-character energy.</p></div>
+        <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-bold text-primary sm:block"><span className="mr-2 inline-block size-1.5 rounded-full bg-primary" /> YOU'RE IN CONTROL</span>
       </div>
-      <p className="mt-1 truncate text-xs text-muted-foreground">{user.email}</p>
-      <Button asChild variant="outline" className="mt-4"><Link to="/groups"><Users /> Groups & shared expenses</Link></Button>
-      <Button asChild variant="outline" className="mt-2"><Link to="/insights"><TrendingUp /> Price insights</Link></Button>
 
-      <section className="mt-5 rounded-2xl bg-card p-5 shadow-sm">
-        <p className="text-sm text-muted-foreground">Confirmed total</p>
-        {totals.size === 0 ? <p className="font-display text-3xl">—</p> :
-          [...totals].map(([c, v]) => <p key={c} className="font-display text-3xl">{formatMinor(v, c)}</p>)}
-        {drafts > 0 && <p className="mt-2 text-sm text-primary">{drafts} draft{drafts > 1 ? "s" : ""} waiting for review</p>}
-      </section>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <article className="bento-tile col-span-2 flex min-h-56 flex-col justify-between bg-card p-5 md:p-6">
+          <div className="flex items-center justify-between"><p className="utility-label text-muted-foreground">CONFIRMED SPENDING</p><span className="flex size-8 items-center justify-center rounded-full border border-border"><ArrowUpRight className="size-4 text-primary" /></span></div>
+          <div className="my-5">{txs.isLoading ? <FinanceSkeleton /> : totals.size === 0 ? <p className="font-display text-5xl font-bold">0.000 <span className="text-lg text-muted-foreground">KWD</span></p> : [...totals].map(([c, value]) => <p key={c} className="break-all font-display text-4xl font-bold md:text-5xl">{formatMinor(value, c).split(" ")[0]} <span className="text-base font-medium text-muted-foreground">{c}</span></p>)}</div>
+          <div className="flex items-center justify-between border-t border-border pt-4"><span className="text-xs text-muted-foreground">Your latest 100 expenses</span><span className="flex items-center gap-1.5 text-xs text-primary"><Check className="size-3.5" /> Confirmed only</span></div>
+        </article>
+        <article className="bento-tile flex flex-col justify-between bg-accent/10 p-5">
+          <Sparkles className="size-5 text-accent" /><div className="my-4"><p className="font-display text-4xl font-bold">{drafts.toString().padStart(2, "0")}</p><p className="mt-2 text-xs text-muted-foreground">Drafts to review</p></div>
+          <Button variant="ghost" className="justify-between px-0 text-accent" onClick={() => { setActivityFilter("draft"); document.getElementById("recent-activity")?.scrollIntoView({ behavior: "smooth" }); }}>REVIEW <ArrowUpRight /></Button>
+        </article>
+        <article className="bento-tile flex flex-col justify-between bg-card p-5">
+          <ArrowDownLeft className="size-5 text-primary" /><div className="my-4"><p className="font-display text-4xl font-bold">{confirmed.length.toString().padStart(2, "0")}</p><p className="mt-2 text-xs text-muted-foreground">Expenses logged</p></div><p className="utility-label text-muted-foreground">ONE LESS THING TO GUESS</p>
+        </article>
 
-      <section className="mt-5 rounded-2xl bg-card p-5 shadow-sm">
-        <label className={`block w-full cursor-pointer rounded-xl bg-primary py-3 text-center font-semibold text-primary-foreground ${scanning ? "opacity-60" : ""}`}>
-          {scanning ? "Reading receipt…" : "Scan a receipt"}
-          <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" capture="environment" className="sr-only"
-            disabled={scanning} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) scan(f); }} />
-        </label>
-        <p className="mt-2 text-xs text-muted-foreground">Photo or PDF, up to 10 MB. You'll check it before it's saved.</p>
-        {scanErr && <p className="mt-2 text-sm text-destructive">{scanErr}</p>}
-      </section>
+        <article id="scan-receipt" className="bento-tile relative col-span-2 flex min-h-64 flex-col bg-card p-5 md:p-6">
+          <div className="relative z-10 max-w-[58%]"><span className="utility-label text-primary">RECEIPTS → REAL CLARITY</span><h2 className="mt-3 text-3xl leading-tight">Scan it.<br />Own it.</h2><p className="mt-2 text-xs leading-relaxed text-muted-foreground">Every item. Every fils.<br />All in one place.</p></div>
+          <img src={receiptArt} width={1024} height={1024} alt="Chrome receipt sculpture with a neon pink payment card" className="absolute right-0 top-0 h-full w-[58%] object-cover" />
+          <div className="relative z-10 mt-auto pt-5"><Button variant="pink" disabled={scanning} onClick={() => fileInput.current?.click()}><ScanLine />{scanning ? "Reading receipt…" : "Scan a receipt"}</Button><input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" capture="environment" className="sr-only" disabled={scanning} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) scan(f); }} />
+            {scanning && <div className="skeleton-shimmer mt-3 h-1 w-32 rounded-full bg-secondary" />}{scanErr && <p className="mt-2 text-xs text-destructive">{scanErr}</p>}</div>
+        </article>
+        <div className="col-span-2 md:col-span-2"><ReceiptStreak today={today} dates={confirmed.filter((tx) => tx.source === "receipt").map((tx) => tx.occurred_on)} /></div>
+      </div>
 
-      <form onSubmit={(e) => { e.preventDefault(); add.mutate(); }} className="mt-5 space-y-3 rounded-2xl bg-card p-5 shadow-sm">
-        <p className="font-semibold">Add an expense</p>
-        <input placeholder="Where? (e.g. Lulu Hypermarket)" value={merchant} maxLength={120} onChange={(e) => setMerchant(e.target.value)}
-          className="w-full rounded-xl border border-input bg-background px-4 py-3" />
-        <div className="flex gap-2">
-          <input required inputMode="decimal" placeholder="0.000" value={amount} onChange={(e) => setAmount(e.target.value)}
-            className="w-full rounded-xl border border-input bg-background px-4 py-3 font-display text-lg" />
-          <select aria-label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)}
-            className="rounded-xl border border-input bg-background px-3">
-            {Object.keys(CURRENCY_DIGITS).map((c) => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <input type="date" required value={date} onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-xl border border-input bg-background px-4 py-3" />
-        <button disabled={add.isPending} className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground disabled:opacity-60">
-          Save expense
-        </button>
-        {err && <p className="text-sm text-destructive">{err}</p>}
-      </form>
-
-      <ul className="mt-5 divide-y divide-border rounded-2xl bg-card px-5 shadow-sm">
-        {txs.isLoading && <li className="py-4 text-sm text-muted-foreground">Loading…</li>}
-        {txs.data?.length === 0 && <li className="py-4 text-sm text-muted-foreground">No expenses yet.</li>}
-        {txs.data?.map((t) => (
-          <li key={t.id}>
-            <Link to="/review/$id" params={{ id: t.id }} className="flex items-center justify-between py-3">
-              <div>
-                <p className="font-semibold">{t.merchant ?? "Expense"}</p>
-                <p className="text-xs text-muted-foreground">{t.occurred_on}{t.status === "draft" ? " · draft — tap to review" : ""}</p>
-              </div>
-              <span className="font-display">{formatMinor(BigInt(t.total_minor), t.currency)}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-6 grid gap-6 md:grid-cols-[1.35fr_1fr]">
+        <section id="recent-activity" className="min-w-0">
+          <div className="flex items-center justify-between"><h2 className="text-xl">The latest</h2><Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)}>{showAll ? "Show less" : "View all"}<ArrowUpRight /></Button></div>
+          <div className="mt-4 flex gap-2" role="group" aria-label="Activity filter">{[["all", "All moves"], ["confirmed", "Confirmed"], ["draft", "Drafts"]].map(([value, label]) => <Button key={value} size="sm" variant={activityFilter === value ? "default" : "outline"} className="rounded-full" aria-pressed={activityFilter === value} onClick={() => setActivityFilter(value ?? "all")}>{label}</Button>)}</div>
+          <ul className="mt-3 divide-y divide-border">
+            {txs.isLoading && <li><FinanceSkeleton /></li>}
+            {txs.error && <li className="py-5 text-sm text-destructive">Couldn't load your expenses.</li>}
+            {!txs.isLoading && visibleActivity.length === 0 && <li className="py-8 text-sm text-muted-foreground">No {activityFilter === "all" ? "expenses" : activityFilter === "draft" ? "drafts" : "confirmed expenses"} yet.</li>}
+            {visibleActivity.map((t, index) => <li key={t.id}><Link to="/review/$id" params={{ id: t.id }} className="group flex items-center gap-3 py-4"><span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${index % 3 === 0 ? "bg-secondary/10 text-secondary" : index % 3 === 1 ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}><ArrowUpRight className="size-4 transition-transform group-hover:rotate-45" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{t.merchant ?? "Expense"}</p><p className="mt-1 text-[11px] text-muted-foreground">{t.occurred_on}{t.status === "draft" ? " · Draft" : " · Confirmed"}</p></div><span className="shrink-0 text-sm font-bold">{formatMinor(BigInt(t.total_minor), t.currency)}</span></Link></li>)}
+          </ul>
+          <div className="mt-4 flex flex-wrap gap-2"><Button asChild variant="outline" size="sm"><Link to="/insights"><TrendingUp /> Price insights</Link></Button><Button asChild variant="outline" size="sm"><Link to="/groups"><Users /> Your circle</Link></Button></div>
+        </section>
+        <section className="min-w-0 border-t border-border pt-5 md:border-l md:border-t-0 md:pl-6 md:pt-0">
+          <div className="mb-5 flex items-center justify-between"><h2 className="text-xl">Log a little</h2><Plus className="size-5 text-primary" /></div>
+          <form onSubmit={(e) => { e.preventDefault(); add.mutate(); }} className="space-y-3">
+            <label className="block text-xs text-muted-foreground">Merchant<input aria-label="Merchant" placeholder="Where did it go?" value={merchant} maxLength={120} onChange={(e) => setMerchant(e.target.value)} className={`${inputClass} mt-2`} /></label>
+            <label className="block text-xs text-muted-foreground">Amount<div className="mt-2 flex gap-2"><input required aria-label="Amount" inputMode="decimal" placeholder="0.000" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputClass} /><select aria-label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className="rounded-xl border border-input bg-background px-3 text-xs">{Object.keys(CURRENCY_DIGITS).map((c) => <option key={c}>{c}</option>)}</select></div></label>
+            <label className="block text-xs text-muted-foreground">Date<input aria-label="Expense date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} className={`${inputClass} mt-2`} /></label>
+            <Button disabled={add.isPending} className="mt-2 w-full"><Plus />{add.isPending ? "Saving…" : "Save expense"}</Button>
+            {err && <p className="text-sm text-destructive">{err}</p>}
+          </form>
+        </section>
+      </div>
     </main>
   );
 }
