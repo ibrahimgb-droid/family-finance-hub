@@ -7,6 +7,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { saveReceiptReview } from "@/lib/receipt-review.functions";
 import { ReceiptLineItems, type EditableReceiptItem } from "@/components/receipt-line-items";
 import { signedAmountToMinor, type ReceiptItem } from "@/domain/receipt-items";
+import { suggestCategoryName } from "@/domain/categories";
+import { categoriesQueryKey, fetchCategories } from "@/lib/category-queries";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/review/$id")({
@@ -43,10 +45,19 @@ function Review() {
       return { tx: data, url };
     },
   });
+  const categories = useQuery({ queryKey: categoriesQueryKey, queryFn: fetchCategories });
   const [f, setF] = useState({ merchant: "", date: "", currency: "KWD", total: "", tax: "" });
+  const [categoryChoice, setCategoryChoice] = useState<string | null | undefined>(undefined);
   const [err, setErr] = useState<string | null>(null);
   const [items, setItems] = useState<EditableReceiptItem[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const suggestedName = suggestCategoryName(items.map((item) => {
+    const minor = signedAmountToMinor(item.amount, f.currency);
+    return { category: item.category, total: minor === null ? null : BigInt(minor) };
+  }));
+  const suggestedId = categories.data?.find((c) => c.name === suggestedName && !c.is_hidden)?.id ?? null;
+  const categoryId = categoryChoice !== undefined ? categoryChoice : (q.data?.tx.category_id ?? suggestedId);
   useEffect(() => {
     if (!q.data) return;
     const t = q.data.tx;
@@ -65,7 +76,7 @@ function Review() {
         if ((unitPrice.trim() && unit === null) || (amount.trim() && total === null)) throw new Error("Check the line-item amounts and currency precision.");
         return { ...item, unit_price_minor: unit, total_minor: total };
       });
-      await saveReview({ data: { id, status, ...f, items: reviewed } });
+      await saveReview({ data: { id, status, ...f, categoryId: categoryId ?? null, items: reviewed } });
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["price-insights"] });
       qc.invalidateQueries({ queryKey: ["tx", id] });
@@ -97,6 +108,12 @@ function Review() {
         </div>
         <label className="block text-sm text-muted-foreground">Tax / VAT
           <input className={field} inputMode="decimal" value={f.tax} onChange={(e) => setF({ ...f, tax: e.target.value })} disabled={done} />
+        </label>
+        <label className="block text-sm text-muted-foreground">Category
+          <select className={field} value={categoryId ?? ""} onChange={(e) => setCategoryChoice(e.target.value || null)} disabled={done}>
+            <option value="">No category</option>
+            {(categories.data ?? []).filter((c) => !c.is_hidden || c.id === categoryId).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
         </label>
         <ReceiptLineItems items={items} currency={f.currency} total={f.total} disabled={done || saving} onChange={setItems} />
         {done ? <p className="text-sm text-muted-foreground">This receipt is already {q.data.tx.status}.</p> : (

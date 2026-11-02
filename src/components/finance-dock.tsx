@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 export function FinanceDock() {
   const path = useRouterState({ select: (state) => state.location.pathname });
-  if (!["/ledger", "/insights", "/groups", "/review"].some((prefix) => path.startsWith(prefix))) return null;
+  if (!["/ledger", "/insights", "/groups", "/review", "/categories"].some((prefix) => path.startsWith(prefix))) return null;
   return <nav aria-label="Main navigation" className="finance-dock fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/90 p-2 backdrop-blur-xl">
     {[
       { to: "/ledger" as const, icon: LayoutDashboard, label: "Dashboard" },

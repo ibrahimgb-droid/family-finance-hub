@@ -10,6 +10,8 @@ import { ArrowUpRight, ArrowDownLeft, Plus, ScanLine, Wallet, Sparkles, LogOut, 
 import { ReceiptStreak } from "@/components/receipt-streak";
 import { SpendingTrendCard } from "@/components/spending-trend-card";
 import { FinanceSkeleton } from "@/components/finance-skeleton";
+import { CategoryBreakdownCard } from "@/components/category-breakdown-card";
+import { categoriesQueryKey, fetchCategories } from "@/lib/category-queries";
 import receiptArt from "@/assets/receipt-sculpture.jpg";
 
 export const Route = createFileRoute("/_authenticated/ledger")({
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/ledger")({
   component: Ledger,
 });
 
-type Tx = { id: string; merchant: string | null; occurred_on: string; currency: string; total_minor: number | string; status: string; source: string };
+type Tx = { id: string; merchant: string | null; occurred_on: string; currency: string; total_minor: number | string; status: string; source: string; category_id: string | null; categories: { name: string } | null };
 
 function Ledger() {
   const qc = useQueryClient();
@@ -34,6 +36,9 @@ function Ledger() {
   const { user } = Route.useRouteContext();
   const fileInput = useRef<HTMLInputElement>(null);
   const [activityFilter, setActivityFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [formCategory, setFormCategory] = useState("");
+  const categories = useQuery({ queryKey: categoriesQueryKey, queryFn: fetchCategories });
   const [showAll, setShowAll] = useState(false);
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [merchant, setMerchant] = useState("");
@@ -46,7 +51,7 @@ function Ledger() {
     queryKey: ["transactions"],
     queryFn: async () => {
       const { data, error } = await supabase.from("transactions")
-        .select("id, merchant, occurred_on, currency, total_minor, status, source")
+        .select("id, merchant, occurred_on, currency, total_minor, status, source, category_id, categories(name)")
         .neq("status", "void").order("occurred_on", { ascending: false }).limit(100);
       if (error) throw error;
       return data as Tx[];
@@ -59,7 +64,7 @@ function Ledger() {
       const { error } = await supabase.from("transactions").insert({
         user_id: user.id, merchant: merchant.trim() || null, occurred_on: date, currency,
         total_minor: minor.toString() as unknown as number, status: "confirmed",
-        confirmed_at: new Date().toISOString(), source: "manual",
+        confirmed_at: new Date().toISOString(), source: "manual", category_id: formCategory || null,
       });
       if (error) throw error;
     },
@@ -105,7 +110,7 @@ function Ledger() {
   }
 
   const confirmed = (txs.data ?? []).filter((tx) => tx.status === "confirmed");
-  const activity = (txs.data ?? []).filter((tx) => activityFilter === "all" || tx.status === activityFilter);
+  const activity = (txs.data ?? []).filter((tx) => (activityFilter === "all" || tx.status === activityFilter) && (categoryFilter === "all" || (categoryFilter === "none" ? tx.category_id === null : tx.category_id === categoryFilter)));
   const visibleActivity = showAll ? activity : activity.slice(0, 5);
   const inputClass = "w-full rounded-xl border border-input bg-background/60 px-4 py-3 text-sm";
 
@@ -142,17 +147,19 @@ function Ledger() {
         </article>
         <div className="col-span-2 md:col-span-2"><ReceiptStreak today={today} dates={confirmed.filter((tx) => tx.source === "receipt").map((tx) => tx.occurred_on)} /></div>
         <SpendingTrendCard txs={txs.data ?? []} today={today} />
+        <CategoryBreakdownCard today={today} />
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-[1.35fr_1fr]">
         <section id="recent-activity" className="min-w-0">
           <div className="flex items-center justify-between"><h2 className="text-xl">The latest</h2><Button variant="ghost" size="sm" onClick={() => setShowAll(!showAll)}>{showAll ? "Show less" : "View all"}<ArrowUpRight /></Button></div>
           <div className="mt-4 flex gap-2" role="group" aria-label="Activity filter">{[["all", "All moves"], ["confirmed", "Confirmed"], ["draft", "Drafts"]].map(([value, label]) => <Button key={value} size="sm" variant={activityFilter === value ? "default" : "outline"} className="rounded-full" aria-pressed={activityFilter === value} onClick={() => setActivityFilter(value ?? "all")}>{label}</Button>)}</div>
+          <select aria-label="Category filter" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="mt-3 w-full rounded-xl border border-input bg-background px-3 py-2 text-xs"><option value="all">All categories</option><option value="none">Uncategorized</option>{(categories.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
           <ul className="mt-3 divide-y divide-border">
             {txs.isLoading && <li><FinanceSkeleton /></li>}
             {txs.error && <li className="py-5 text-sm text-destructive">Couldn't load your expenses.</li>}
             {!txs.isLoading && visibleActivity.length === 0 && <li className="py-8 text-sm text-muted-foreground">No {activityFilter === "all" ? "expenses" : activityFilter === "draft" ? "drafts" : "confirmed expenses"} yet.</li>}
-            {visibleActivity.map((t, index) => <li key={t.id}><Link to="/review/$id" params={{ id: t.id }} className="group flex items-center gap-3 py-4"><span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${index % 3 === 0 ? "bg-secondary/10 text-secondary" : index % 3 === 1 ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}><ArrowUpRight className="size-4 transition-transform group-hover:rotate-45" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{t.merchant ?? "Expense"}</p><p className="mt-1 text-[11px] text-muted-foreground">{t.occurred_on}{t.status === "draft" ? " · Draft" : " · Confirmed"}</p></div><span className="shrink-0 text-sm font-bold">{formatMinor(BigInt(t.total_minor), t.currency)}</span></Link></li>)}
+            {visibleActivity.map((t, index) => <li key={t.id}><Link to="/review/$id" params={{ id: t.id }} className="group flex items-center gap-3 py-4"><span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${index % 3 === 0 ? "bg-secondary/10 text-secondary" : index % 3 === 1 ? "bg-accent/10 text-accent" : "bg-primary/10 text-primary"}`}><ArrowUpRight className="size-4 transition-transform group-hover:rotate-45" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold">{t.merchant ?? "Expense"}</p><p className="mt-1 text-[11px] text-muted-foreground">{t.occurred_on}{t.status === "draft" ? " · Draft" : " · Confirmed"}{t.categories ? ` · ${t.categories.name}` : ""}</p></div><span className="shrink-0 text-sm font-bold">{formatMinor(BigInt(t.total_minor), t.currency)}</span></Link></li>)}
           </ul>
           <div className="mt-4 flex flex-wrap gap-2"><Button asChild variant="outline" size="sm"><Link to="/insights"><TrendingUp /> Price insights</Link></Button><Button asChild variant="outline" size="sm"><Link to="/groups"><Users /> Your circle</Link></Button></div>
         </section>
@@ -161,6 +168,7 @@ function Ledger() {
           <form onSubmit={(e) => { e.preventDefault(); add.mutate(); }} className="space-y-3">
             <label className="block text-xs text-muted-foreground">Merchant<input aria-label="Merchant" placeholder="Where did it go?" value={merchant} maxLength={120} onChange={(e) => setMerchant(e.target.value)} className={`${inputClass} mt-2`} /></label>
             <label className="block text-xs text-muted-foreground">Amount<div className="mt-2 flex gap-2"><input required aria-label="Amount" inputMode="decimal" placeholder="0.000" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputClass} /><select aria-label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className="rounded-xl border border-input bg-background px-3 text-xs">{Object.keys(CURRENCY_DIGITS).map((c) => <option key={c}>{c}</option>)}</select></div></label>
+            <label className="block text-xs text-muted-foreground">Category<select aria-label="Category" value={formCategory} onChange={(e) => setFormCategory(e.target.value)} className={`${inputClass} mt-2`}><option value="">No category</option>{(categories.data ?? []).filter((c) => !c.is_hidden).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <label className="block text-xs text-muted-foreground">Date<input aria-label="Expense date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} className={`${inputClass} mt-2`} /></label>
             <Button disabled={add.isPending} className="mt-2 w-full"><Plus />{add.isPending ? "Saving…" : "Save expense"}</Button>
             {err && <p className="text-sm text-destructive">{err}</p>}
