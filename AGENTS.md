@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 ## Project rules
+- Default expense categories are initialized by a profile-insert database trigger, never on page load; backfills skip existing names without changing visibility. Why: reliable signup defaults without duplicating or overwriting user categories.
 - Shared visual theming lives in CSS semantic tokens; the root shell supplies the finance navigation dock and dashboard widgets derive only from existing user data. Why: consistent styling without changing ledger or authorization behavior.
 - Money is integer minor units (bigint); never floats. Why: exact KWD (3-decimal) maths.
 - `src/domain/` is pure TypeScript with no React/router/backend imports. Why: reused by the future Expo client.
