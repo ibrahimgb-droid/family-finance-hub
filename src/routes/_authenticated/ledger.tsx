@@ -8,6 +8,7 @@ import { parseToMinor, formatMinor, CURRENCY_DIGITS } from "@/domain/money";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, ArrowDownLeft, Plus, ScanLine, Wallet, Sparkles, LogOut, Check, Users, TrendingUp } from "lucide-react";
 import { ReceiptStreak } from "@/components/receipt-streak";
+import { SpendingTrendCard } from "@/components/spending-trend-card";
 import { FinanceSkeleton } from "@/components/finance-skeleton";
 import receiptArt from "@/assets/receipt-sculpture.jpg";
 
@@ -140,6 +141,7 @@ function Ledger() {
             {scanning && <div className="skeleton-shimmer mt-3 h-1 w-32 rounded-full bg-secondary" />}{scanErr && <p className="mt-2 text-xs text-destructive">{scanErr}</p>}</div>
         </article>
         <div className="col-span-2 md:col-span-2"><ReceiptStreak today={today} dates={confirmed.filter((tx) => tx.source === "receipt").map((tx) => tx.occurred_on)} /></div>
+        <SpendingTrendCard txs={txs.data ?? []} today={today} />
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-[1.35fr_1fr]">
