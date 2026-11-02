@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           icon: string | null
           id: string
+          is_hidden: boolean
           name: string
           user_id: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           created_at?: string
           icon?: string | null
           id?: string
+          is_hidden?: boolean
           name: string
           user_id: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           created_at?: string
           icon?: string | null
           id?: string
+          is_hidden?: boolean
           name?: string
           user_id?: string
         }
