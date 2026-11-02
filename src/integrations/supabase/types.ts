@@ -637,6 +637,12 @@ export type Database = {
     }
     Functions: {
       accept_invitation: { Args: { _token: string }; Returns: string }
+      default_category_names: {
+        Args: never
+        Returns: {
+          name: string
+        }[]
+      }
       is_group_admin: { Args: { _group: string }; Returns: boolean }
       is_group_member: { Args: { _group: string }; Returns: boolean }
     }

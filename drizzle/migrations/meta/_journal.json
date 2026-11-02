@@ -29,6 +29,13 @@
       "when": 1793614449287,
       "tag": "0003_repair_category_visibility",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793614781112,
+      "tag": "0004_initialize_default_categories",
+      "breakpoints": true
     }
   ]
 }
