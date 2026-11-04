@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Restore missing default categories for existing accounts and initialize them at signup; verify selectors and duplicate safety.
+- [x] Restore missing default categories for existing accounts and initialize on profile creation; all twelve defaults verified in signed-in Categories, manual entry and receipt review. Transactional trigger tests passed for creation, duplicate safety, and preserving custom/hidden categories.
 - [x] Repair category loading and saving: added missing visibility column and refreshed schema types; signed-in add, rename, hide/show, reload persistence and manual/receipt selectors verified; six category calculation tests passed. Temporary test category removed.
 - [ ] Apply neon dark redesign, finance bento dashboard, streak tracker, filter pills, loading skeletons and floating navigation; verify mobile and desktop.
 - [x] Add item price-change Insights page: confirmed-receipt comparisons, search, direction/currency filters and receipt history; 14 tests passed and signed-in confirmation → insight → receipt history verified. Temporary test purchases removed.
@@ -18,7 +18,7 @@
 ## Improvement phases (ordered; each phase ships with tests and a passing build)
 
 ### Phase 1 - Categories foundation
-- [ ] Default category set per user, created on sign-up; users can add, rename and hide categories on a Categories screen.
+- [x] Default category set per user, created on sign-up; users can add, rename and hide categories on a Categories screen.
 - [ ] Expenses (manual and receipt) carry a category via the existing category field; the category is never a free-text value.
 - [ ] Derive a suggested expense category from the largest item category on a receipt; user can override on review.
 - [ ] Merchant memory: remember the category a user chose for a merchant and suggest it next time (new user-owned table, RLS with four per-verb policies, explicit grants).
