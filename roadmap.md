@@ -1,5 +1,5 @@
 # Roadmap
-- [ ] Add confirmed custom-category deletion and verify cancellation, removal and persistence.
+- [x] Add confirmed custom-category deletion; eight category tests passed and signed-in cancellation, hidden-category removal and reload persistence verified.
 - [x] Restore missing default categories for existing accounts and initialize on profile creation; all twelve defaults verified in signed-in Categories, manual entry and receipt review. Transactional trigger tests passed for creation, duplicate safety, and preserving custom/hidden categories.
 - [x] Repair category loading and saving: added missing visibility column and refreshed schema types; signed-in add, rename, hide/show, reload persistence and manual/receipt selectors verified; six category calculation tests passed. Temporary test category removed.
 - [ ] Apply neon dark redesign, finance bento dashboard, streak tracker, filter pills, loading skeletons and floating navigation; verify mobile and desktop.
