@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { suggestCategoryName, sumByCategory } from "./categories";
+import { isCustomCategory, suggestCategoryName, sumByCategory } from "./categories";
+
+describe("custom category deletion", () => {
+  it("offers deletion for custom category names", () => {
+    expect(isCustomCategory("Car repairs")).toBe(true);
+  });
+  it("keeps default categories out of the custom delete action", () => {
+    expect(isCustomCategory("Groceries")).toBe(false);
+    expect(isCustomCategory(" household ")).toBe(false);
+  });
+});
 
 describe("suggestCategoryName", () => {
   it("returns the category with the largest total", () => {

@@ -1,3 +1,9 @@
+import { RECEIPT_CATEGORIES } from "./receipt-items";
+
+export function isCustomCategory(name: string): boolean {
+  return !RECEIPT_CATEGORIES.some((category) => category.toLowerCase() === name.trim().toLowerCase());
+}
+
 export type CategorizedAmount = { category: string | null; amount: bigint };
 
 export function sumByCategory(rows: CategorizedAmount[]): Map<string | null, bigint> {

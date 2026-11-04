@@ -4,7 +4,9 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { categoriesQueryKey, fetchCategories, type Category } from "@/lib/category-queries";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye, EyeOff, Pencil, Plus, Check, X } from "lucide-react";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel } from "@/components/ui/alert-dialog";
+import { isCustomCategory } from "@/domain/categories";
+import { ArrowLeft, Eye, EyeOff, Pencil, Plus, Check, X, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/categories")({
   head: () => ({
@@ -27,6 +29,7 @@ function Categories() {
   const qc = useQueryClient();
   const [newName, setNewName] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
 
   const categories = useQuery({ queryKey: categoriesQueryKey, queryFn: fetchCategories });
 
@@ -54,6 +57,19 @@ function Categories() {
 
   const visible = (categories.data ?? []).filter((c) => !c.is_hidden);
   const hidden = (categories.data ?? []).filter((c) => c.is_hidden);
+  const remove = useMutation({
+    mutationFn: async (category: Category) => {
+      if (!isCustomCategory(category.name)) throw new Error("Default categories can be hidden instead.");
+      const { data, error } = await supabase.from("categories").delete().eq("id", category.id).eq("user_id", user.id).select("id");
+      if (error) throw error;
+      if (!data?.length) throw new Error("This category is no longer available.");
+    },
+    onSuccess: () => {
+      setDeleteTarget(null); setErr(null); refresh();
+      for (const queryKey of [["transactions"], ["tx"], ["category-breakdown"]]) qc.invalidateQueries({ queryKey });
+    },
+    onError: fail,
+  });
 
   return (
     <main className="mx-auto min-h-screen max-w-2xl px-5 py-8 md:py-10">
@@ -76,7 +92,7 @@ function Categories() {
       <section className="mt-8">
         <h2 className="text-xs font-bold tracking-widest text-muted-foreground">SHOWN WHEN LOGGING</h2>
         <ul className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
-          {visible.map((c) => <CategoryRow key={c.id} category={c} busy={update.isPending} onRename={(name) => update.mutate({ id: c.id, name })} onToggle={() => update.mutate({ id: c.id, is_hidden: true })} />)}
+          {visible.map((c) => <CategoryRow key={c.id} category={c} busy={update.isPending || remove.isPending} onDelete={() => { setErr(null); setDeleteTarget(c); }} onRename={(name) => update.mutate({ id: c.id, name })} onToggle={() => update.mutate({ id: c.id, is_hidden: true })} />)}
           {!categories.isLoading && visible.length === 0 && <li className="p-4 text-sm text-muted-foreground">No visible categories.</li>}
         </ul>
       </section>
@@ -85,15 +101,28 @@ function Categories() {
         <section className="mt-8">
           <h2 className="text-xs font-bold tracking-widest text-muted-foreground">HIDDEN</h2>
           <ul className="mt-3 divide-y divide-border rounded-2xl border border-border bg-card">
-            {hidden.map((c) => <CategoryRow key={c.id} category={c} busy={update.isPending} onRename={(name) => update.mutate({ id: c.id, name })} onToggle={() => update.mutate({ id: c.id, is_hidden: false })} />)}
+            {hidden.map((c) => <CategoryRow key={c.id} category={c} busy={update.isPending || remove.isPending} onDelete={() => { setErr(null); setDeleteTarget(c); }} onRename={(name) => update.mutate({ id: c.id, name })} onToggle={() => update.mutate({ id: c.id, is_hidden: false })} />)}
           </ul>
         </section>
       )}
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open && !remove.isPending) setDeleteTarget(null); }}>
+        <AlertDialogContent className="max-w-[calc(100%-2rem)] sm:max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="break-words">Delete {deleteTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>This cannot be undone. Existing expenses will remain, but their category will become Uncategorized. Hide this category instead to keep it on past expenses.</AlertDialogDescription>
+          </AlertDialogHeader>
+          {err && <p role="alert" className="text-sm text-destructive">{err}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={remove.isPending}>Cancel</AlertDialogCancel>
+            <Button variant="destructive" disabled={remove.isPending} onClick={() => { if (deleteTarget) remove.mutate(deleteTarget); }}><Trash2 />{remove.isPending ? "Deleting…" : "Delete category"}</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
 
-function CategoryRow({ category, busy, onRename, onToggle }: { category: Category; busy: boolean; onRename: (name: string) => void; onToggle: () => void }) {
+function CategoryRow({ category, busy, onRename, onToggle, onDelete }: { category: Category; busy: boolean; onRename: (name: string) => void; onToggle: () => void; onDelete: () => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(category.name);
 
@@ -112,6 +141,7 @@ function CategoryRow({ category, busy, onRename, onToggle }: { category: Categor
       <span className={`flex-1 truncate text-sm ${category.is_hidden ? "text-muted-foreground" : "font-semibold"}`}>{category.name}</span>
       <Button size="icon" variant="ghost" aria-label={`Rename ${category.name}`} disabled={busy} onClick={() => { setDraft(category.name); setEditing(true); }}><Pencil /></Button>
       <Button size="icon" variant="ghost" aria-label={category.is_hidden ? `Show ${category.name}` : `Hide ${category.name}`} disabled={busy} onClick={onToggle}>{category.is_hidden ? <Eye /> : <EyeOff />}</Button>
+      {isCustomCategory(category.name) && <Button size="icon" variant="ghost" aria-label={`Delete ${category.name}`} title="Delete category" disabled={busy} onClick={onDelete}><Trash2 className="text-destructive" /></Button>}
     </li>
   );
 }
