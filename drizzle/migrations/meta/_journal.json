@@ -36,6 +36,13 @@
       "when": 1793614781112,
       "tag": "0004_initialize_default_categories",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793891499071,
+      "tag": "0005_financial_accounts",
+      "breakpoints": true
     }
   ]
 }
