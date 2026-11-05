@@ -448,6 +448,38 @@ export type Database = {
           },
         ]
       }
+      merchant_category_memory: {
+        Row: {
+          category_id: string
+          id: string
+          merchant_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          id?: string
+          merchant_key: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          category_id?: string
+          id?: string
+          merchant_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_category_memory_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
