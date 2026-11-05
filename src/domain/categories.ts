@@ -4,6 +4,41 @@ export function isCustomCategory(name: string): boolean {
   return !RECEIPT_CATEGORIES.some((category) => category.toLowerCase() === name.trim().toLowerCase());
 }
 
+export function normalizeMerchant(raw: string): string {
+  return raw.trim().toLowerCase().replace(/\s+/g, " ").slice(0, 120);
+}
+
+export type CategorySuggestionInput = {
+  merchantMemory: string | null;
+  largestItemCategory: string | null;
+};
+
+export type ResolvedCategorySuggestion = {
+  source: "merchant" | "items" | null;
+  categoryName: string | null;
+};
+
+export function resolveCategorySuggestion(
+  input: CategorySuggestionInput,
+  options: { availableCategoryNames?: ReadonlySet<string>; hiddenCategoryNames?: ReadonlySet<string> } = {},
+): ResolvedCategorySuggestion {
+  const available = options.availableCategoryNames;
+  const hidden = options.hiddenCategoryNames;
+  const isVisible = (name: string): boolean => {
+    if (hidden?.has(name)) return false;
+    if (available && !available.has(name)) return false;
+    return true;
+  };
+
+  if (input.merchantMemory && isVisible(input.merchantMemory)) {
+    return { source: "merchant", categoryName: input.merchantMemory };
+  }
+  if (input.largestItemCategory && isVisible(input.largestItemCategory)) {
+    return { source: "items", categoryName: input.largestItemCategory };
+  }
+  return { source: null, categoryName: null };
+}
+
 export type CategorizedAmount = { category: string | null; amount: bigint };
 
 export function sumByCategory(rows: CategorizedAmount[]): Map<string | null, bigint> {

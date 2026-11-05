@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isCustomCategory, suggestCategoryName, sumByCategory } from "./categories";
+import { isCustomCategory, normalizeMerchant, resolveCategorySuggestion, suggestCategoryName, sumByCategory } from "./categories";
 
 describe("custom category deletion", () => {
   it("offers deletion for custom category names", () => {
@@ -57,5 +57,76 @@ describe("sumByCategory", () => {
     ]);
     expect(totals.get("a")).toBe(125n);
     expect(totals.get(null)).toBe(50n);
+  });
+});
+
+describe("normalizeMerchant", () => {
+  it("trims, lowercases and collapses internal whitespace", () => {
+    expect(normalizeMerchant("  Sultan   Center ")).toBe("sultan center");
+  });
+  it("caps at 120 characters", () => {
+    expect(normalizeMerchant("x".repeat(200)).length).toBe(120);
+  });
+  it("returns empty string for whitespace-only input", () => {
+    expect(normalizeMerchant("   ")).toBe("");
+  });
+});
+
+describe("resolveCategorySuggestion", () => {
+  it("prefers merchant memory over item suggestion", () => {
+    expect(resolveCategorySuggestion({ merchantMemory: "Groceries", largestItemCategory: "Dining" })).toEqual({
+      source: "merchant",
+      categoryName: "Groceries",
+    });
+  });
+
+  it("falls back to largest item when no merchant memory", () => {
+    expect(resolveCategorySuggestion({ merchantMemory: null, largestItemCategory: "Dining" })).toEqual({
+      source: "items",
+      categoryName: "Dining",
+    });
+  });
+
+  it("returns null when neither is available", () => {
+    expect(resolveCategorySuggestion({ merchantMemory: null, largestItemCategory: null })).toEqual({
+      source: null,
+      categoryName: null,
+    });
+  });
+
+  it("falls back to items when merchant memory is hidden", () => {
+    expect(
+      resolveCategorySuggestion(
+        { merchantMemory: "Groceries", largestItemCategory: "Dining" },
+        { hiddenCategoryNames: new Set(["Groceries"]) },
+      ),
+    ).toEqual({ source: "items", categoryName: "Dining" });
+  });
+
+  it("returns null when merchant memory and items are both hidden", () => {
+    expect(
+      resolveCategorySuggestion(
+        { merchantMemory: "Groceries", largestItemCategory: "Dining" },
+        { hiddenCategoryNames: new Set(["Groceries", "Dining"]) },
+      ),
+    ).toEqual({ source: null, categoryName: null });
+  });
+
+  it("skips merchant memory not in the available category set", () => {
+    expect(
+      resolveCategorySuggestion(
+        { merchantMemory: "Old Category", largestItemCategory: "Dining" },
+        { availableCategoryNames: new Set(["Dining", "Groceries"]) },
+      ),
+    ).toEqual({ source: "items", categoryName: "Dining" });
+  });
+
+  it("ignores item suggestion not in the available set", () => {
+    expect(
+      resolveCategorySuggestion(
+        { merchantMemory: null, largestItemCategory: "Ghost" },
+        { availableCategoryNames: new Set(["Dining"]) },
+      ),
+    ).toEqual({ source: null, categoryName: null });
   });
 });

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { extractReceipt } from "@/lib/receipts.functions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseToMinor, formatMinor, CURRENCY_DIGITS } from "@/domain/money";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { SpendingTrendCard } from "@/components/spending-trend-card";
 import { FinanceSkeleton } from "@/components/finance-skeleton";
 import { CategoryBreakdownCard } from "@/components/category-breakdown-card";
 import { categoriesQueryKey, fetchCategories } from "@/lib/category-queries";
+import { merchantMemoryQueryKey, fetchMerchantMemoryMap, rememberMerchantCategory } from "@/lib/merchant-memory";
+import { normalizeMerchant, resolveCategorySuggestion } from "@/domain/categories";
 import receiptArt from "@/assets/receipt-sculpture.jpg";
 
 export const Route = createFileRoute("/_authenticated/ledger")({
@@ -38,7 +40,9 @@ function Ledger() {
   const [activityFilter, setActivityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [formCategory, setFormCategory] = useState("");
+  const [categoryTouched, setCategoryTouched] = useState(false);
   const categories = useQuery({ queryKey: categoriesQueryKey, queryFn: fetchCategories });
+  const merchantMemory = useQuery({ queryKey: merchantMemoryQueryKey, queryFn: fetchMerchantMemoryMap });
   const [showAll, setShowAll] = useState(false);
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
   const [merchant, setMerchant] = useState("");
@@ -67,10 +71,23 @@ function Ledger() {
         confirmed_at: new Date().toISOString(), source: "manual", category_id: formCategory || null,
       });
       if (error) throw error;
+      if (formCategory && merchant.trim()) await rememberMerchantCategory(merchant, formCategory);
     },
-    onSuccess: () => { setMerchant(""); setAmount(""); setErr(null); qc.invalidateQueries({ queryKey: ["transactions"] }); },
+    onSuccess: () => { setMerchant(""); setAmount(""); setFormCategory(""); setCategoryTouched(false); setErr(null); qc.invalidateQueries({ queryKey: ["transactions"] }); qc.invalidateQueries({ queryKey: merchantMemoryQueryKey }); },
     onError: (e) => setErr((e as Error).message),
   });
+
+  useEffect(() => {
+    if (categoryTouched) return;
+    const key = normalizeMerchant(merchant);
+    const rememberedName = key ? (merchantMemory.data?.get(key) ?? null) : null;
+    const suggested = resolveCategorySuggestion({ merchantMemory: rememberedName, largestItemCategory: null }, {
+      availableCategoryNames: new Set((categories.data ?? []).map((c) => c.name)),
+      hiddenCategoryNames: new Set((categories.data ?? []).filter((c) => c.is_hidden).map((c) => c.name)),
+    });
+    const suggestedId = suggested.categoryName ? (categories.data ?? []).find((c) => c.name === suggested.categoryName)?.id ?? "" : "";
+    setFormCategory(suggestedId);
+  }, [merchant, merchantMemory.data, categories.data, categoryTouched]);
 
   // Summaries count confirmed rows only, grouped per currency (no FX).
   const totals = new Map<string, bigint>();
@@ -168,7 +185,7 @@ function Ledger() {
           <form onSubmit={(e) => { e.preventDefault(); add.mutate(); }} className="space-y-3">
             <label className="block text-xs text-muted-foreground">Merchant<input aria-label="Merchant" placeholder="Where did it go?" value={merchant} maxLength={120} onChange={(e) => setMerchant(e.target.value)} className={`${inputClass} mt-2`} /></label>
             <label className="block text-xs text-muted-foreground">Amount<div className="mt-2 flex gap-2"><input required aria-label="Amount" inputMode="decimal" placeholder="0.000" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputClass} /><select aria-label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className="rounded-xl border border-input bg-background px-3 text-xs">{Object.keys(CURRENCY_DIGITS).map((c) => <option key={c}>{c}</option>)}</select></div></label>
-            <label className="block text-xs text-muted-foreground">Category<select aria-label="Category" value={formCategory} onChange={(e) => setFormCategory(e.target.value)} className={`${inputClass} mt-2`}><option value="">No category</option>{(categories.data ?? []).filter((c) => !c.is_hidden).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+            <label className="block text-xs text-muted-foreground">Category<select aria-label="Category" value={formCategory} onChange={(e) => { setFormCategory(e.target.value); setCategoryTouched(true); }} className={`${inputClass} mt-2`}><option value="">No category</option>{(categories.data ?? []).filter((c) => !c.is_hidden).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <label className="block text-xs text-muted-foreground">Date<input aria-label="Expense date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} className={`${inputClass} mt-2`} /></label>
             <Button disabled={add.isPending} className="mt-2 w-full"><Plus />{add.isPending ? "Saving…" : "Save expense"}</Button>
             {err && <p className="text-sm text-destructive">{err}</p>}

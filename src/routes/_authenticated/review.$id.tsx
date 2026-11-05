@@ -7,8 +7,9 @@ import { useServerFn } from "@tanstack/react-start";
 import { saveReceiptReview } from "@/lib/receipt-review.functions";
 import { ReceiptLineItems, type EditableReceiptItem } from "@/components/receipt-line-items";
 import { signedAmountToMinor, type ReceiptItem } from "@/domain/receipt-items";
-import { suggestCategoryName } from "@/domain/categories";
+import { normalizeMerchant, resolveCategorySuggestion, suggestCategoryName } from "@/domain/categories";
 import { categoriesQueryKey, fetchCategories } from "@/lib/category-queries";
+import { merchantMemoryQueryKey, fetchMerchantMemoryMap, rememberMerchantCategory } from "@/lib/merchant-memory";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_authenticated/review/$id")({
@@ -46,17 +47,27 @@ function Review() {
     },
   });
   const categories = useQuery({ queryKey: categoriesQueryKey, queryFn: fetchCategories });
+  const merchantMemory = useQuery({ queryKey: merchantMemoryQueryKey, queryFn: fetchMerchantMemoryMap });
   const [f, setF] = useState({ merchant: "", date: "", currency: "KWD", total: "", tax: "" });
   const [categoryChoice, setCategoryChoice] = useState<string | null | undefined>(undefined);
   const [err, setErr] = useState<string | null>(null);
   const [items, setItems] = useState<EditableReceiptItem[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const suggestedName = suggestCategoryName(items.map((item) => {
+  const largestItemCategory = suggestCategoryName(items.map((item) => {
     const minor = signedAmountToMinor(item.amount, f.currency);
     return { category: item.category, total: minor === null ? null : BigInt(minor) };
   }));
-  const suggestedId = categories.data?.find((c) => c.name === suggestedName && !c.is_hidden)?.id ?? null;
+  const merchantKey = normalizeMerchant(f.merchant);
+  const rememberedName = merchantKey ? (merchantMemory.data?.get(merchantKey) ?? null) : null;
+  const suggested = resolveCategorySuggestion(
+    { merchantMemory: rememberedName, largestItemCategory },
+    {
+      availableCategoryNames: new Set((categories.data ?? []).map((c) => c.name)),
+      hiddenCategoryNames: new Set((categories.data ?? []).filter((c) => c.is_hidden).map((c) => c.name)),
+    },
+  );
+  const suggestedId = suggested.categoryName ? (categories.data ?? []).find((c) => c.name === suggested.categoryName && !c.is_hidden)?.id ?? null : null;
   const categoryId = categoryChoice !== undefined ? categoryChoice : (q.data?.tx.category_id ?? suggestedId);
   useEffect(() => {
     if (!q.data) return;
@@ -77,9 +88,11 @@ function Review() {
         return { ...item, unit_price_minor: unit, total_minor: total };
       });
       await saveReview({ data: { id, status, ...f, categoryId: categoryId ?? null, items: reviewed } });
+      if (status === "confirmed" && categoryId && f.merchant.trim()) await rememberMerchantCategory(f.merchant, categoryId);
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["price-insights"] });
       qc.invalidateQueries({ queryKey: ["tx", id] });
+      qc.invalidateQueries({ queryKey: merchantMemoryQueryKey });
       navigate({ to: "/ledger" });
     } catch (e) { setErr((e as Error).message); }
     finally { setSaving(false); }
