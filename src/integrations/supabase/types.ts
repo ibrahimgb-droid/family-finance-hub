@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          created_at: string
+          currency: string
+          id: string
+          is_archived: boolean
+          kind: string
+          name: string
+          opening_balance_minor: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency: string
+          id?: string
+          is_archived?: boolean
+          kind?: string
+          name: string
+          opening_balance_minor?: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          id?: string
+          is_archived?: boolean
+          kind?: string
+          name?: string
+          opening_balance_minor?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string
@@ -353,38 +394,6 @@ export type Database = {
           },
         ]
       }
-      merchant_category_memory: {
-        Row: {
-          category_id: string
-          id: string
-          merchant_key: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          category_id: string
-          id?: string
-          merchant_key: string
-          updated_at?: string
-          user_id?: string
-        }
-        Update: {
-          category_id?: string
-          id?: string
-          merchant_key?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "merchant_category_memory_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       invitations: {
         Row: {
           accepted_by: string | null
@@ -435,6 +444,38 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      merchant_category_memory: {
+        Row: {
+          category_id: string
+          id: string
+          merchant_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          id?: string
+          merchant_key: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          category_id?: string
+          id?: string
+          merchant_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_category_memory_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
         ]
@@ -583,6 +624,7 @@ export type Database = {
       }
       transactions: {
         Row: {
+          account_id: string | null
           category_id: string | null
           confirmed_at: string | null
           created_at: string
@@ -602,6 +644,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_id?: string | null
           category_id?: string | null
           confirmed_at?: string | null
           created_at?: string
@@ -621,6 +664,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_id?: string | null
           category_id?: string | null
           confirmed_at?: string | null
           created_at?: string
@@ -640,6 +684,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_category_id_fkey"
             columns: ["category_id"]

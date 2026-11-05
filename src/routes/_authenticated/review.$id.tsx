@@ -9,6 +9,7 @@ import { ReceiptLineItems, type EditableReceiptItem } from "@/components/receipt
 import { signedAmountToMinor, type ReceiptItem } from "@/domain/receipt-items";
 import { normalizeMerchant, resolveCategorySuggestion, suggestCategoryName } from "@/domain/categories";
 import { categoriesQueryKey, fetchCategories } from "@/lib/category-queries";
+import { accountsQueryKey, fetchAccounts } from "@/lib/account-queries";
 import { merchantMemoryQueryKey, fetchMerchantMemoryMap, rememberMerchantCategory } from "@/lib/merchant-memory";
 import { Button } from "@/components/ui/button";
 
@@ -49,6 +50,8 @@ function Review() {
   const categories = useQuery({ queryKey: categoriesQueryKey, queryFn: fetchCategories });
   const merchantMemory = useQuery({ queryKey: merchantMemoryQueryKey, queryFn: fetchMerchantMemoryMap });
   const [f, setF] = useState({ merchant: "", date: "", currency: "KWD", total: "", tax: "" });
+  const accounts = useQuery({ queryKey: accountsQueryKey, queryFn: fetchAccounts });
+  const [accountChoice, setAccountChoice] = useState<string | null | undefined>(undefined);
   const [categoryChoice, setCategoryChoice] = useState<string | null | undefined>(undefined);
   const [err, setErr] = useState<string | null>(null);
   const [items, setItems] = useState<EditableReceiptItem[]>([]);
@@ -87,7 +90,7 @@ function Review() {
         if ((unitPrice.trim() && unit === null) || (amount.trim() && total === null)) throw new Error("Check the line-item amounts and currency precision.");
         return { ...item, unit_price_minor: unit, total_minor: total };
       });
-      await saveReview({ data: { id, status, ...f, categoryId: categoryId ?? null, items: reviewed } });
+      await saveReview({ data: { id, status, ...f, categoryId: categoryId ?? null, accountId: (accountChoice !== undefined ? accountChoice : q.data?.tx.account_id) ?? null, items: reviewed } });
       if (status === "confirmed" && categoryId && f.merchant.trim()) await rememberMerchantCategory(f.merchant, categoryId);
       qc.invalidateQueries({ queryKey: ["transactions"] });
       qc.invalidateQueries({ queryKey: ["price-insights"] });
@@ -121,6 +124,12 @@ function Review() {
         </div>
         <label className="block text-sm text-muted-foreground">Tax / VAT
           <input className={field} inputMode="decimal" value={f.tax} onChange={(e) => setF({ ...f, tax: e.target.value })} disabled={done} />
+        </label>
+        <label className="block text-sm text-muted-foreground">Paid from
+          <select aria-label="Account" className={field} value={(accountChoice !== undefined ? accountChoice : q.data.tx.account_id) ?? ""} onChange={(e) => setAccountChoice(e.target.value || null)} disabled={done}>
+            <option value="">No account</option>
+            {(accounts.data ?? []).filter((a) => (!a.is_archived && a.currency === f.currency) || a.id === q.data.tx.account_id).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
         </label>
         <label className="block text-sm text-muted-foreground">Category
           <select className={field} value={categoryId ?? ""} onChange={(e) => setCategoryChoice(e.target.value || null)} disabled={done}>
