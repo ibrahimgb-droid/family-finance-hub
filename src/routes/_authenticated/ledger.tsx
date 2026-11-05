@@ -12,6 +12,7 @@ import { SpendingTrendCard } from "@/components/spending-trend-card";
 import { FinanceSkeleton } from "@/components/finance-skeleton";
 import { CategoryBreakdownCard } from "@/components/category-breakdown-card";
 import { categoriesQueryKey, fetchCategories } from "@/lib/category-queries";
+import { accountsQueryKey, fetchAccounts } from "@/lib/account-queries";
 import { merchantMemoryQueryKey, fetchMerchantMemoryMap, rememberMerchantCategory } from "@/lib/merchant-memory";
 import { normalizeMerchant, resolveCategorySuggestion } from "@/domain/categories";
 import receiptArt from "@/assets/receipt-sculpture.jpg";
@@ -40,6 +41,8 @@ function Ledger() {
   const [activityFilter, setActivityFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [formCategory, setFormCategory] = useState("");
+  const [formAccount, setFormAccount] = useState("");
+  const accounts = useQuery({ queryKey: accountsQueryKey, queryFn: fetchAccounts });
   const [categoryTouched, setCategoryTouched] = useState(false);
   const categories = useQuery({ queryKey: categoriesQueryKey, queryFn: fetchCategories });
   const merchantMemory = useQuery({ queryKey: merchantMemoryQueryKey, queryFn: fetchMerchantMemoryMap });
@@ -68,12 +71,12 @@ function Ledger() {
       const { error } = await supabase.from("transactions").insert({
         user_id: user.id, merchant: merchant.trim() || null, occurred_on: date, currency,
         total_minor: minor.toString() as unknown as number, status: "confirmed",
-        confirmed_at: new Date().toISOString(), source: "manual", category_id: formCategory || null,
+        confirmed_at: new Date().toISOString(), source: "manual", category_id: formCategory || null, account_id: formAccount || null,
       });
       if (error) throw error;
       if (formCategory && merchant.trim()) await rememberMerchantCategory(merchant, formCategory);
     },
-    onSuccess: () => { setMerchant(""); setAmount(""); setFormCategory(""); setCategoryTouched(false); setErr(null); qc.invalidateQueries({ queryKey: ["transactions"] }); qc.invalidateQueries({ queryKey: merchantMemoryQueryKey }); },
+    onSuccess: () => { setMerchant(""); setAmount(""); setFormCategory(""); setCategoryTouched(false); setErr(null); qc.invalidateQueries({ queryKey: ["transactions"] }); qc.invalidateQueries({ queryKey: ["account-transactions"] }); qc.invalidateQueries({ queryKey: merchantMemoryQueryKey }); },
     onError: (e) => setErr((e as Error).message),
   });
 
@@ -185,6 +188,7 @@ function Ledger() {
           <form onSubmit={(e) => { e.preventDefault(); add.mutate(); }} className="space-y-3">
             <label className="block text-xs text-muted-foreground">Merchant<input aria-label="Merchant" placeholder="Where did it go?" value={merchant} maxLength={120} onChange={(e) => setMerchant(e.target.value)} className={`${inputClass} mt-2`} /></label>
             <label className="block text-xs text-muted-foreground">Amount<div className="mt-2 flex gap-2"><input required aria-label="Amount" inputMode="decimal" placeholder="0.000" value={amount} onChange={(e) => setAmount(e.target.value)} className={inputClass} /><select aria-label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)} className="rounded-xl border border-input bg-background px-3 text-xs">{Object.keys(CURRENCY_DIGITS).map((c) => <option key={c}>{c}</option>)}</select></div></label>
+            <label className="block text-xs text-muted-foreground">Paid from<select aria-label="Account" value={formAccount} onChange={(e) => setFormAccount(e.target.value)} className={`${inputClass} mt-2`}><option value="">No account</option>{(accounts.data ?? []).filter((a) => !a.is_archived && a.currency === currency).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select></label>
             <label className="block text-xs text-muted-foreground">Category<select aria-label="Category" value={formCategory} onChange={(e) => { setFormCategory(e.target.value); setCategoryTouched(true); }} className={`${inputClass} mt-2`}><option value="">No category</option>{(categories.data ?? []).filter((c) => !c.is_hidden).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
             <label className="block text-xs text-muted-foreground">Date<input aria-label="Expense date" type="date" required value={date} onChange={(e) => setDate(e.target.value)} className={`${inputClass} mt-2`} /></label>
             <Button disabled={add.isPending} className="mt-2 w-full"><Plus />{add.isPending ? "Saving…" : "Save expense"}</Button>
