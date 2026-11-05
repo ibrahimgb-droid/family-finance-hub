@@ -13,6 +13,7 @@
 - [x] F. Navigation & screens (sign-in, ledger, review draft, groups)
 - [x] G. Receipt capture / OCR adapter / extraction schema
 - [ ] H. Group, family, invitation, split, settlement UI: screens and calculation tests added; blocked on Cloud readiness for atomic expense RPC, same-group guards, and authenticated end-to-end verification. Saving fails closed until applied.
+- [x] Financial accounts: accounts page with balances and net worth, account picker on manual and receipt expenses; 3 balance tests.
 - [ ] I. Analytics events, ad slots, premium checks
 - [ ] J. CI/CD, environments, test plan, release checklist
 
