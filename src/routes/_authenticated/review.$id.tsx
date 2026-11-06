@@ -10,6 +10,7 @@ import { signedAmountToMinor, type ReceiptItem } from "@/domain/receipt-items";
 import { normalizeMerchant, resolveCategorySuggestion, suggestCategoryName } from "@/domain/categories";
 import { categoriesQueryKey, fetchCategories } from "@/lib/category-queries";
 import { accountsQueryKey, fetchAccounts } from "@/lib/account-queries";
+import { canSpendFrom } from "@/domain/accounts";
 import { merchantMemoryQueryKey, fetchMerchantMemoryMap, rememberMerchantCategory } from "@/lib/merchant-memory";
 import { Button } from "@/components/ui/button";
 
@@ -128,7 +129,7 @@ function Review() {
         <label className="block text-sm text-muted-foreground">Paid from
           <select aria-label="Account" className={field} value={(accountChoice !== undefined ? accountChoice : q.data.tx.account_id) ?? ""} onChange={(e) => setAccountChoice(e.target.value || null)} disabled={done}>
             <option value="">No account</option>
-            {(accounts.data ?? []).filter((a) => (!a.is_archived && a.currency === f.currency) || a.id === q.data.tx.account_id).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {(accounts.data ?? []).filter((a) => (!a.is_archived && a.currency === f.currency && canSpendFrom(a.kind)) || a.id === q.data.tx.account_id).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </label>
         <label className="block text-sm text-muted-foreground">Category
