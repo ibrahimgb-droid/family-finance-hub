@@ -14,8 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_transfers: {
+        Row: {
+          created_at: string
+          from_account_id: string
+          from_amount_minor: number
+          id: string
+          note: string | null
+          occurred_on: string
+          to_account_id: string
+          to_amount_minor: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_account_id: string
+          from_amount_minor: number
+          id?: string
+          note?: string | null
+          occurred_on?: string
+          to_account_id: string
+          to_amount_minor: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          from_account_id?: string
+          from_amount_minor?: number
+          id?: string
+          note?: string | null
+          occurred_on?: string
+          to_account_id?: string
+          to_amount_minor?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_transfers_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "account_balances"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "account_transfers_from_account_id_fkey"
+            columns: ["from_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_transfers_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "account_balances"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "account_transfers_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
+          counterparty: string | null
           created_at: string
           currency: string
           id: string
@@ -26,6 +92,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          counterparty?: string | null
           created_at?: string
           currency: string
           id?: string
@@ -36,6 +103,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          counterparty?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -688,6 +756,13 @@ export type Database = {
             foreignKeyName: "transactions_account_id_fkey"
             columns: ["account_id"]
             isOneToOne: false
+            referencedRelation: "account_balances"
+            referencedColumns: ["account_id"]
+          },
+          {
+            foreignKeyName: "transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
             referencedRelation: "accounts"
             referencedColumns: ["id"]
           },
@@ -716,7 +791,35 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      account_balances: {
+        Row: {
+          account_id: string | null
+          balance_minor: number | null
+          currency: string | null
+          user_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          balance_minor?: never
+          currency?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          balance_minor?: never
+          currency?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Functions: {
       accept_invitation: { Args: { _token: string }; Returns: string }

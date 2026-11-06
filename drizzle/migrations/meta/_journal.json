@@ -50,6 +50,13 @@
       "when": 1793891672854,
       "tag": "0006_merchant_category_memory",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793956797330,
+      "tag": "0007_account_transfers_loans",
+      "breakpoints": true
     }
   ]
 }
