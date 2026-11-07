@@ -22,7 +22,7 @@ const ERROR_TEXT: Record<TransferError, string> = {
  * requires them equal). Cross-currency: the received amount stays editable and
  * no exchange rate is assumed — the KWD is not pegged, so we never pre-fill one.
  */
-export function TransferSheet({ accounts }: { accounts: Account[] }) {
+export function TransferSheet({ accounts }: { accounts: Pick<Account, "id" | "name" | "kind" | "currency" | "is_archived">[] }) {
   const qc = useQueryClient();
   const active = accounts.filter((a) => !a.is_archived);
   const [fromId, setFromId] = useState("");
