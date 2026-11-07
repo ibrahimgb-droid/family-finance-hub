@@ -7,11 +7,11 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 
-const url = process.env.VITE_SUPABASE_URL ?? "";
-const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
+const url = process.env["VITE_SUPABASE_URL"] ?? "";
+const key = process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ?? "";
 
 function accessToken(): string | undefined {
-  if (process.env.SUPABASE_TEST_ACCESS_TOKEN) return process.env.SUPABASE_TEST_ACCESS_TOKEN;
+  if (process.env["SUPABASE_TEST_ACCESS_TOKEN"]) return process.env["SUPABASE_TEST_ACCESS_TOKEN"];
   const file = path.join(homedir(), ".cache/lovable-auth/session.json");
   if (!existsSync(file)) return undefined;
   return JSON.parse(readFileSync(file, "utf8"))?.session?.access_token;
