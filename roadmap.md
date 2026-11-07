@@ -1,4 +1,5 @@
 # Roadmap
+- [x] Port nest transfers and loans: loan_lent/loan_borrowed kinds with counterparty, account_transfers with RLS and same-currency guard, computed account_balances view, Move money sheet, funded-loan flow as one transfer; 26 account/money tests passed and signed-in lend → repay → cross-currency editing verified. Temporary test accounts removed.
 - [x] Add confirmed custom-category deletion; eight category tests passed and signed-in cancellation, hidden-category removal and reload persistence verified.
 - [x] Restore missing default categories for existing accounts and initialize on profile creation; all twelve defaults verified in signed-in Categories, manual entry and receipt review. Transactional trigger tests passed for creation, duplicate safety, and preserving custom/hidden categories.
 - [x] Repair category loading and saving: added missing visibility column and refreshed schema types; signed-in add, rename, hide/show, reload persistence and manual/receipt selectors verified; six category calculation tests passed. Temporary test category removed.
