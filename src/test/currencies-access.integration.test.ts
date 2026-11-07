@@ -1,4 +1,3 @@
-// @vitest-environment node
 // Regression: currencies must be readable by signed-in users only (migration 0008).
 // Runs against the live backend. Signed-in check needs SUPABASE_TEST_ACCESS_TOKEN
 // or a minted session at ~/.cache/lovable-auth/session.json.
