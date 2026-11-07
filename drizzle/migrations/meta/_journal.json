@@ -57,6 +57,13 @@
       "when": 1793956797330,
       "tag": "0007_account_transfers_loans",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794036649666,
+      "tag": "0008_restrict_currencies_to_authenticated",
+      "breakpoints": true
     }
   ]
 }
